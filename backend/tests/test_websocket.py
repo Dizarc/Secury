@@ -1,12 +1,4 @@
-from fastapi.testclient import TestClient
-from app.main import app
-
-import pytest
-
-# Simulate HTTP and websocket request
-client = TestClient(app)
-
-def test_websocket_connection():
+def test_websocket_connection(client):
     with client.websocket_connect("/ws") as websocket:
         data = websocket.receive_json()
         # Verify that the first message has the expected fields
