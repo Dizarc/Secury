@@ -106,7 +106,7 @@ async def root():
         Check the health of the API
     """
     return {
-        "Message": "IoT Security Monitor API",
+        "message": "IoT Security Monitor API",
         "status": "running",
         "endpoints": {
             "docs": "/docs",
