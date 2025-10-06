@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from datetime import datetime
 from typing import List, Dict
 
@@ -8,6 +8,8 @@ import json
 # TODO: remove when you remove sensor_simulator()
 import asyncio
 import random
+
+#TODO: Remove every print statement for production deployment and replace it with logging
 
 #==========================================
 # run before startup and yield after shutdown
@@ -55,6 +57,33 @@ devices: Dict[int, dict] = {
 
 events: List[dict] = []
 
+#==========================================
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+    
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+    
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def send_personal_message(self, message: dict, websocket: WebSocket):
+        await websocket.send_json(message)
+
+    async def broadcast_to_clients(self, message: dict):
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except Exception as e:
+                print(f"Error sending message: {e}")
+                self.disconnect(connection)
+
+manager = ConnectionManager()
+
+#==========================================
 # Func to insert an event to events
 def create_event(device_id: int, event_type: str, details: str):
     event = {
@@ -104,7 +133,7 @@ async def get_device(device_id: int):
     """
         Get specific device by ID
     """
-    if(device_id not in devices):
+    if device_id not in devices:
         return { "success": False, "error": "Device not found"}, 404
     
     return { "success": True, "device": devices[device_id]}
@@ -117,7 +146,7 @@ async def trigger_device(device_id: int, new_status: str):
         Will be called by the IoT devices
     """
 
-    if(device_id not in devices):
+    if device_id not in devices:
         return {"success": False, "error": "Device not found"}
     
     old_status = devices[device_id]["status"]
@@ -149,6 +178,38 @@ async def get_events(limit: int = 10):
     }
 
 #==========================================
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """
+        Websocket connection for real-time updates.
+        Frontend will connect here to receive live sensor updates.
+    """
+
+    await manager.connect(websocket)
+
+    print(f"New websocket connection. Total: {len(manager.active_connections)}")
+
+    await manager.send_personal_message({
+        "type": "initial_state",
+        "devices": list(devices.values()),
+        "events": events[-10:]
+    }, websocket)
+
+    try:
+        while True:
+            data = await websocket.receive_text()
+            print(f"Received from client: {data}")
+
+            await manager.send_personal_message({
+                "type": "ack",
+                "message": "Message received"
+            }, websocket)
+
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        print(f"Websocket disconnected. Remaining: {len(manager.active_connections)}")
+
+#==========================================
 # Simulate sensors (TODO: remove when real sensors are added)
 async def sensor_simulator():
     """
@@ -162,6 +223,6 @@ async def sensor_simulator():
         device_id = random.choice(list(devices.keys()))
         new_status = random.choice(["open", "closed"])
 
-        if(devices[device_id]["status"] != new_status):
+        if devices[device_id]["status"] != new_status:
             print(f"Simulator: {devices[device_id]["name"]} changed to: {new_status}")
             await trigger_device(device_id, new_status)
