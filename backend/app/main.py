@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from datetime import datetime
 from typing import List, Dict
 
@@ -134,7 +134,7 @@ async def get_device(device_id: int):
         Get specific device by ID
     """
     if device_id not in devices:
-        return { "success": False, "error": "Device not found"}, 404
+        raise HTTPException(status_code=404, detail="Device not found")
     
     return { "success": True, "device": devices[device_id]}
 
@@ -147,7 +147,7 @@ async def trigger_device(device_id: int, new_status: str):
     """
 
     if device_id not in devices:
-        return {"success": False, "error": "Device not found"}
+        raise HTTPException(status_code=404, detail="Device not found")
     
     old_status = devices[device_id]["status"]
     devices[device_id]["status"] = new_status

@@ -1,6 +1,6 @@
 def test_get_all_devices(client):
     response = client.get("/api/devices")
-    assert response.satus_code == 200
+    assert response.status_code == 200
 
     data = response.json()
     assert data["success"] is True
@@ -19,7 +19,7 @@ def test_get_device_valid(client):
 
 def test_get_device_invalid(client):
     response = client.get("/api/devices/999")
-    assert response.status_code == 200
+    assert response.status_code == 404
+    
     data = response.json()
-    assert data["success"] is False
-    assert "error" in data
+    assert data["detail"] == "Device not found"
