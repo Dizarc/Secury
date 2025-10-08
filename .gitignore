@@ -207,4 +207,6 @@ marimo/_lsp/
 __marimo__/
 
 .vscode
+
 events.txt
+database.db

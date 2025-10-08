@@ -3,4 +3,7 @@ fastapi
 uvicorn
 datetime
 typing
+pydantic_settings
+sqlmodel
+
 pytest

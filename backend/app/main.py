@@ -2,6 +2,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from datetime import datetime
 from typing import List, Dict
+from sqlmodel import Session
+
+from backend.app.core.database import engine, init_db
 
 import json
 
@@ -19,6 +22,11 @@ async def lifespan(app: FastAPI):
         Runs when server starts
     """
     print("Starting server...")
+    
+    print("Initializing database...")
+    with Session(engine) as session:
+        init_db(session)
+
     print("Starting sensor simulation...")
     asyncio.create_task(sensor_simulator())
 
