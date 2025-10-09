@@ -2,11 +2,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from datetime import datetime
 from typing import List, Dict
-from sqlmodel import Session
+from sqlmodel import Session, select
 
-from backend.app.core.database import engine, init_db
+from backend.app.core.database import engine, init_db, sessionDep
+from backend.app import crud
+from backend.app.models import Device, DeviceUpdate, Event
 
 import json
+
+# TODO: Change every get to the new way with the database.
 
 # TODO: remove when you remove sensor_simulator()
 import asyncio
@@ -27,45 +31,26 @@ async def lifespan(app: FastAPI):
     with Session(engine) as session:
         init_db(session)
 
+        # If db is empty (TODO: Remove after)
+        if not session.exec(select(Device)).first():
+            session.add_all([
+                Device(name="Room Window", type="window", location="Room 1"),
+                Device(name="Front door", type="door", location="Entrance"),
+            ])
+            session.commit()
+
     print("Starting sensor simulation...")
     asyncio.create_task(sensor_simulator())
 
     yield
+
     print("Shutting down server...")
-    print("Saving events to text file...")
-    with open("events.txt", mode="w") as file:
-        file.write(json.dumps(events))
 
 app = FastAPI(
     lifespan=lifespan,
     title="IoT Security Monitor API",
     description="Real-time home security monitoring system"
 )
-
-#==========================================
-# Store device information and event history (TODO: Change this later on)
-devices: Dict[int, dict] = {
-    1: {
-        "id": 1,
-        "name": "Room Window",
-        "type": "window",
-        "location": "room 1",
-        "status": "closed",
-        "battery": 100,
-        "last_updated": datetime.now().isoformat()
-    },
-    2: {
-        "id": 2,
-        "name": "Front Door",
-        "type": "door",
-        "location": "Entrance",
-        "status": "closed",
-        "battery": 100,
-        "last_updated": datetime.now().isoformat()
-    }
-}
-
-events: List[dict] = []
 
 #==========================================
 class ConnectionManager:
@@ -94,22 +79,6 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 #==========================================
-# Func to insert an event to events
-def create_event(device_id: int, event_type: str, details: str):
-    event = {
-        "id": len(events) + 1,
-        "device_id": device_id,
-        "device_name": devices[device_id]["name"],
-        "type" : event_type,
-        "details": details,
-        "timestamp": datetime.now().isoformat()
-    }
-
-    events.append(event)
-
-    return event
-
-#==========================================
 @app.get("/")
 async def root():
     """
@@ -127,51 +96,56 @@ async def root():
 
 #==========================================
 @app.get("/api/devices")
-async def get_all_devices():
+async def get_all_devices(session: sessionDep):
     """
         Get a list of all devices
     """
+    devices = crud.get_devices(session=session)
+
     return {
         "success": True,
         "count": len(devices),
-        "devices": list(devices.values())
+        "devices": devices
     }
 
 #==========================================
 @app.get("/api/devices/{device_id}")
-async def get_device(device_id: int):
+async def get_device(device_id: int, session: sessionDep):
     """
         Get specific device by ID
     """
-    if device_id not in devices:
+    device = crud.get_device_by_id(session=session, device_id=device_id)
+    
+    if not device:
         raise HTTPException(status_code=404, detail="Device not found")
     
-    return { "success": True, "device": devices[device_id]}
+    return { "success": True, "device": device}
 
 #==========================================
 @app.get("/api/devices/{device_id}/trigger")
-async def trigger_device(device_id: int, new_status: str):
+async def trigger_device(device_id: int, new_status: str, session: sessionDep):
     """
         Device state change for open/closed
         Will be called by the IoT devices
     """
-
-    if device_id not in devices:
+    device = crud.get_device_by_id(session=session, device_id=device_id)
+    if not device:
         raise HTTPException(status_code=404, detail="Device not found")
     
-    old_status = devices[device_id]["status"]
-    devices[device_id]["status"] = new_status
-    devices[device_id]["last_updated"] = datetime.now().isoformat()
+    device_in_update = DeviceUpdate(status=new_status, last_updated=datetime.now().isoformat())
+    
+    device = crud.update_device(session=session, db_device=device, new_device=device_in_update)
 
-    event = create_event(
-        device_id,
-        "status_change",
-        f"status changed from {old_status} to {new_status}"
+    # Change this to add the event into the database
+    event = Event(
+        device_id = device_id,
+        type="status_change",
+        details=f"status changed to {new_status}"
     )
 
     return {
         "success": True,
-        "device": devices[device_id],
+        "device": device,
         "event": event
     }
 
