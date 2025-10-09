@@ -49,6 +49,7 @@ devices: Dict[int, dict] = {
         "id": 1,
         "name": "Room Window",
         "type": "window",
+        "location": "room 1",
         "status": "closed",
         "battery": 100,
         "last_updated": datetime.now().isoformat()
@@ -57,6 +58,7 @@ devices: Dict[int, dict] = {
         "id": 2,
         "name": "Front Door",
         "type": "door",
+        "location": "Entrance",
         "status": "closed",
         "battery": 100,
         "last_updated": datetime.now().isoformat()
