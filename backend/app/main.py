@@ -6,7 +6,10 @@ from sqlmodel import Session, select
 
 from backend.app.core.database import engine, init_db, sessionDep
 from backend.app import crud
-from backend.app.models import Device, DeviceUpdate, Event
+from backend.app.models import (
+    Device, DevicePublic, DeviceCreate, DeviceUpdate, DeviceStatus,
+    Event, EventPublic, EventCreate, EventType
+)
 
 import json
 
@@ -35,7 +38,8 @@ async def lifespan(app: FastAPI):
         if not session.exec(select(Device)).first():
             session.add_all([
                 Device(name="Room Window", type="window", location="Room 1"),
-                Device(name="Front door", type="door", location="Entrance"),
+                Device(name="Front door", type="door", location="Main Entrance"),
+                Device(name="Back door", type="door", location="Back Entrance"),
             ])
             session.commit()
 
@@ -68,7 +72,7 @@ class ConnectionManager:
     async def send_personal_message(self, message: dict, websocket: WebSocket):
         await websocket.send_json(message)
 
-    async def broadcast_to_clients(self, message: dict):
+    async def broadcast(self, message: dict):
         for connection in self.active_connections:
             try:
                 await connection.send_json(message)
@@ -87,29 +91,29 @@ async def root():
     return {
         "message": "IoT Security Monitor API",
         "status": "running",
+        "version": "1.0.0",
         "endpoints": {
             "docs": "/docs",
             "devices": "/api/devices",
-            "events": "/api/events"
+            "events": "/api/events",
+            "websocket": "/ws",
         }
     }
 
+# TODO: Add device creation, update, deletion
+
 #==========================================
-@app.get("/api/devices")
+@app.get("/api/devices", response_model=list[DevicePublic])
 async def get_all_devices(session: sessionDep):
     """
         Get a list of all devices
     """
     devices = crud.get_devices(session=session)
 
-    return {
-        "success": True,
-        "count": len(devices),
-        "devices": devices
-    }
+    return devices
 
 #==========================================
-@app.get("/api/devices/{device_id}")
+@app.get("/api/devices/{device_id}", response_model=DevicePublic)
 async def get_device(device_id: int, session: sessionDep):
     """
         Get specific device by ID
@@ -119,20 +123,27 @@ async def get_device(device_id: int, session: sessionDep):
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
     
-    return { "success": True, "device": device}
+    return device
 
 #==========================================
-@app.get("/api/devices/{device_id}/trigger")
+@app.get("/api/devices/{device_id}/trigger", response_model=dict)
 async def trigger_device(device_id: int, new_status: str, session: sessionDep):
     """
         Device state change for open/closed
         Will be called by the IoT devices
     """
     device = crud.get_device_by_id(session=session, device_id=device_id)
+
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
     
-    device_in_update = DeviceUpdate(status=new_status, last_updated=datetime.now().isoformat())
+    if new_status not in DeviceStatus:
+        raise HTTPException(status_code=404, detail="Status is invalid")
+    
+    device_in_update = DeviceUpdate(
+        status=new_status, 
+        last_updated=datetime.now(),
+    )
     
     device = crud.update_device(session=session, db_device=device, new_device=device_in_update)
 
@@ -140,26 +151,26 @@ async def trigger_device(device_id: int, new_status: str, session: sessionDep):
     event = Event(
         device_id = device_id,
         type="status_change",
-        details=f"status changed to {new_status}"
+        details=f"status changed to {new_status}",
     )
+
+    event = crud.create_event(session=session, event=event)
 
     return {
         "success": True,
-        "device": device,
-        "event": event
+        "device": DevicePublic.model_validate(device).model_dump(),
+        "event": EventPublic.model_validate(event).model_dump(),
     }
 
 #==========================================
-@app.get("/api/events")
-async def get_events(limit: int = 10):
+@app.get("/api/events", response_model=list[EventPublic])
+async def get_events(session: sessionDep, limit: int = 10):
     """
         Get recent events
     """
-    return {
-        "success": True,
-        "count": len(events),
-        "events": events[-limit:]
-    }
+    events = crud.get_events(session=session, limit=limit)
+    
+    return events
 
 #==========================================
 @app.websocket("/ws")
@@ -168,15 +179,17 @@ async def websocket_endpoint(websocket: WebSocket):
         Websocket connection for real-time updates.
         Frontend will connect here to receive live sensor updates.
     """
-
     await manager.connect(websocket)
-
     print(f"New websocket connection. Total: {len(manager.active_connections)}")
+
+    with Session(engine) as session:
+        devices = crud.get_devices(session)
+        events = crud.get_events(session, limit=10)
 
     await manager.send_personal_message({
         "type": "initial_state",
-        "devices": list(devices.values()),
-        "events": events[-10:]
+        "devices": [ DevicePublic.model_validate(device).model_dump() for device in devices],
+        "events": [EventPublic.model_validate(event).model_dump() for event in events ],
     }, websocket)
 
     try:
@@ -186,7 +199,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
             await manager.send_personal_message({
                 "type": "ack",
-                "message": "Message received"
+                "message": "Message received",
             }, websocket)
 
     except WebSocketDisconnect:
@@ -199,14 +212,34 @@ async def sensor_simulator():
     """
         Simulate random sensor events
     """
-
     while True:
-        await asyncio.sleep(10)
+        await asyncio.sleep(5)
 
-        # select random device and change its status
-        device_id = random.choice(list(devices.keys()))
-        new_status = random.choice(["open", "closed"])
+        with Session(engine) as session:
+            devices = crud.get_devices(session=session)
+            if not devices:
+                continue
 
-        if devices[device_id]["status"] != new_status:
-            print(f"Simulator: {devices[device_id]["name"]} changed to: {new_status}")
-            await trigger_device(device_id, new_status)
+            # select random device and change its status
+            device = random.choice(devices)
+            new_status = random.choice([DeviceStatus.OPEN, DeviceStatus.CLOSED])
+
+            if device.status != new_status:
+                update_data = DeviceUpdate(status=new_status, last_updated=datetime.now())
+                updated_device = crud.update_device(session=session, db_device=device, new_device=update_data)
+                
+                print(f"Sim: {device.name} changed to: {new_status.value}")
+
+                event = Event(
+                    device_id=device.id,
+                    type= EventType.STATUS_CHANGE,
+                    details=f"{device.name} changed to: {new_status.value}",
+                )
+                
+                crud.create_event(session=session, event=event)
+
+                await manager.broadcast({
+                    "type": "device_update",
+                    "device": DevicePublic.model_validate(updated_device).model_dump(),
+                    "event": EventPublic.model_validate(event).model_dump(),
+                })

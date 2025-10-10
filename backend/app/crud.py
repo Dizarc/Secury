@@ -22,6 +22,9 @@ def create_device(*, session: Session, device: Device) -> Device:
     session.refresh(device)
     return device
 
+def get_events(*, session: Session, limit) -> List[Event]:
+    return session.exec(select(Event).order_by(Event.timestamp).limit(limit=limit)).all()
+
 def create_event(*, session: Session, event: Event) -> Event:
     session.add(event)
     session.commit()
