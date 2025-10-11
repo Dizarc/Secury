@@ -20,7 +20,7 @@ class DeviceBase(SQLModel):
 
 class Device(DeviceBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    status: DeviceStatus = Field(default=DeviceStatus.CLOSED)
+    status: DeviceStatus = Field(default=DeviceStatus.CLOSED.value)
     last_updated: datetime = Field(default_factory= lambda: datetime.now())
     last_seen: datetime = Field(default_factory= lambda: datetime.now())
 

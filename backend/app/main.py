@@ -13,8 +13,6 @@ from backend.app.models import (
 
 import json
 
-# TODO: Change every get to the new way with the database.
-
 # TODO: remove when you remove sensor_simulator()
 import asyncio
 import random
@@ -46,6 +44,8 @@ async def lifespan(app: FastAPI):
     print("Starting sensor simulation...")
     asyncio.create_task(sensor_simulator())
 
+    print("Starting healthchecking...")
+    asyncio.create_task(monitor_device_health())
     yield
 
     print("Shutting down server...")
@@ -147,14 +147,14 @@ async def trigger_device(device_id: int, new_status: str, session: sessionDep):
     
     device = crud.update_device(session=session, db_device=device, new_device=device_in_update)
 
-    # Change this to add the event into the database
-    event = Event(
-        device_id = device_id,
-        type="status_change",
-        details=f"status changed to {new_status}",
+    event = crud.create_event(
+        session=session, 
+        event=EventCreate(
+            device_id = device_id,
+            type="status_change",
+            details=f"status changed to {new_status}",
+        ),
     )
-
-    event = crud.create_event(session=session, event=event)
 
     return {
         "success": True,
@@ -207,6 +207,30 @@ async def websocket_endpoint(websocket: WebSocket):
         print(f"Websocket disconnected. Remaining: {len(manager.active_connections)}")
 
 #==========================================
+# TODO: Add a message from the sensors to the API so they show that theyre alive
+async def monitor_device_health():
+    """
+        Check for offline devices every 2 minutes
+    """
+    while True:
+        await asyncio.sleep(120)
+
+        try:
+            with Session(engine) as session:
+                offline_devices = crud.check_offline_devices(session=session, timeout_minutes=1)
+
+                for device in offline_devices:
+                    print(f"Device {device.name} is offline")
+
+                    await manager.broadcast({
+                        "type": "device_offline",
+                        "device": DevicePublic.model_validate(device).model_dump(),
+                        "timestamp": datetime.now(),
+                    })
+        except Exception as e:
+            print(f"Erorr in healthcheck: {e}")
+
+#==========================================
 # Simulate sensors (TODO: remove when real sensors are added)
 async def sensor_simulator():
     """
@@ -222,21 +246,24 @@ async def sensor_simulator():
 
             # select random device and change its status
             device = random.choice(devices)
-            new_status = random.choice([DeviceStatus.OPEN, DeviceStatus.CLOSED])
+            new_status = random.choice([DeviceStatus.OPEN.value, DeviceStatus.CLOSED.value])
 
             if device.status != new_status:
                 update_data = DeviceUpdate(status=new_status, last_updated=datetime.now())
                 updated_device = crud.update_device(session=session, db_device=device, new_device=update_data)
                 
-                print(f"Sim: {device.name} changed to: {new_status.value}")
+                print(f"Sim: {device.name} changed to: {new_status}")
 
-                event = Event(
+                event = EventCreate(
                     device_id=device.id,
                     type= EventType.STATUS_CHANGE,
-                    details=f"{device.name} changed to: {new_status.value}",
+                    details=f"{device.name} changed to: {new_status}",
                 )
                 
-                crud.create_event(session=session, event=event)
+                event = crud.create_event(
+                    session=session, 
+                    event=event
+                )
 
                 await manager.broadcast({
                     "type": "device_update",
