@@ -52,13 +52,15 @@ def session_fixture():
 
         yield session
 
-@pytest.fixture(scope="module")
+@pytest.fixture(name="client", scope="function")
 def client_fixture(session: Session):
     """
         Provide a TestClient instance which
         simulates HTTP and websocket requestsfor FastAPI app
     """
-    app.dependency_overrides[get_session] = session
+    def get_session_override():
+        yield session
+    app.dependency_overrides[get_session] = get_session_override
     
     with TestClient(app) as c:
         yield c

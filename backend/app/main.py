@@ -186,8 +186,8 @@ async def trigger_device(
 
     return {
         "success": True,
-        "device": DevicePublic.model_validate(device).model_dump(),
-        "event": EventPublic.model_validate(event).model_dump(),
+        "device": DevicePublic.model_validate(device).model_dump(mode="json"),
+        "event": EventPublic.model_validate(event).model_dump(mode="json"),
     }
 
 #==========================================
@@ -216,8 +216,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
     await manager.send_personal_message({
         "type": "initial_state",
-        "devices": [ DevicePublic.model_validate(device).model_dump() for device in devices],
-        "events": [EventPublic.model_validate(event).model_dump() for event in events],
+        "devices": [ DevicePublic.model_validate(device).model_dump(mode="json") for device in devices],
+        "events": [EventPublic.model_validate(event).model_dump(mode="json") for event in events],
     }, websocket)
 
     try:
@@ -253,7 +253,7 @@ async def monitor_device_health():
 
                     await manager.broadcast({
                         "type": "device_offline",
-                        "device": DevicePublic.model_validate(device).model_dump(),
+                        "device": DevicePublic.model_validate(device).model_dump(mode="json"),
                         "timestamp": datetime.now().isoformat(),
                     })
         except Exception as e:
@@ -294,6 +294,6 @@ async def sensor_simulator():
 
                 await manager.broadcast({
                     "type": "device_update",
-                    "device": DevicePublic.model_validate(updated_device).model_dump(),
-                    "event": EventPublic.model_validate(event).model_dump(),
+                    "device": DevicePublic.model_validate(updated_device).model_dump(mode="json"),
+                    "event": EventPublic.model_validate(event).model_dump(mode="json"),
                 })
