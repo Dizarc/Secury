@@ -2,7 +2,7 @@ from sqlmodel import Session, select
 from typing import List, Any
 from datetime import datetime, timedelta
 
-from backend.app.models import (
+from app.models import (
     Device, DeviceUpdate, DevicePublic, DeviceCreate, DeviceStatus, 
     Event, EventCreate, EventType
 )
@@ -13,7 +13,7 @@ def get_devices(*, session: Session) -> List[Device]:
 def get_device_by_id(*, session: Session, device_id: int) -> Device | None:
     return session.get(Device, device_id)
 
-def update_device(*, session: Session, db_device: Device, new_device: DeviceUpdate) -> Any:
+def update_device(*, session: Session, db_device: Device, new_device: DeviceUpdate) -> Device:
     """
         Updates device (Only stuff inside DeviceUpdate)
     """
@@ -22,6 +22,7 @@ def update_device(*, session: Session, db_device: Device, new_device: DeviceUpda
     session.add(db_device)
     session.commit()
     session.refresh(db_device)
+
     return db_device
 
 def check_offline_devices(*, session: Session, timeout_minutes: int = 10) -> List[Device]:
@@ -60,6 +61,7 @@ def create_device(*, session: Session, device: DeviceCreate) -> Device:
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
+
     return db_obj
 
 def get_events(*, session: Session, limit) -> List[Event]:
@@ -70,4 +72,5 @@ def create_event(*, session: Session, event: EventCreate) -> Event:
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
+
     return db_obj

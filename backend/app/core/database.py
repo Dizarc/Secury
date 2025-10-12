@@ -2,9 +2,9 @@ from typing import Annotated
 from sqlmodel import Session, create_engine, SQLModel
 from fastapi import Depends
 
-from backend.app.models import Device, Event
+from app.models import Device, Event
 
-from backend.app.core.config import settings
+from app.core.config import settings
 #from app.models import Device?
 
 connect_args = {"check_same_thread": False}

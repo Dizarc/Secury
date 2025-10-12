@@ -33,6 +33,7 @@ class DevicePublic(DeviceBase):
 class DeviceCreate(DeviceBase):
     status: DeviceStatus | None = None
 
+# TODO: Add the last updated here with a datetime?
 class DeviceUpdate(SQLModel):
     status: DeviceStatus | None = None
     battery: int | None = None

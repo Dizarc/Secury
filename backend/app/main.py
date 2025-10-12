@@ -4,9 +4,9 @@ from datetime import datetime
 from typing import List, Dict
 from sqlmodel import Session, select
 
-from backend.app.core.database import engine, init_db, sessionDep
-from backend.app import crud
-from backend.app.models import (
+from app.core.database import engine, init_db, sessionDep
+from app import crud
+from app.models import (
     Device, DevicePublic, DeviceCreate, DeviceUpdate, DeviceStatus,
     Event, EventPublic, EventCreate, EventType
 )
@@ -157,7 +157,7 @@ async def trigger_device(
         else:
             raise HTTPException(status_code=400, detail="Battery must be 0-100")
 
-    device_in_update = DeviceUpdate(update_data)
+    device_in_update = DeviceUpdate(**update_data)
     
     device = crud.update_device(session=session, db_device=device, new_device=device_in_update)
 
@@ -211,8 +211,8 @@ async def websocket_endpoint(websocket: WebSocket):
     print(f"New websocket connection. Total: {len(manager.active_connections)}")
 
     with Session(engine) as session:
-        devices = crud.get_devices(session)
-        events = crud.get_events(session, limit=10)
+        devices = crud.get_devices(session=session)
+        events = crud.get_events(session=session, limit=10)
 
     await manager.send_personal_message({
         "type": "initial_state",
@@ -254,7 +254,7 @@ async def monitor_device_health():
                     await manager.broadcast({
                         "type": "device_offline",
                         "device": DevicePublic.model_validate(device).model_dump(),
-                        "timestamp": datetime.now(),
+                        "timestamp": datetime.now().isoformat(),
                     })
         except Exception as e:
             print(f"Erorr in healthcheck: {e}")
