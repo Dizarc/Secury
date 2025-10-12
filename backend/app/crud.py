@@ -30,7 +30,12 @@ def check_offline_devices(*, session: Session, timeout_minutes: int = 10) -> Lis
         Returns a list of devices marked offline
     """
     cutoff = datetime.now() - timedelta(minutes=timeout_minutes)
-    offline_devices = session.exec(select(Device).where(Device.last_seen < cutoff)).all()
+    offline_devices = session.exec(
+        select(Device).where(
+            Device.last_seen < cutoff,
+            Device.status != DeviceStatus.OFFLINE
+        )
+    ).all()
 
     for device in offline_devices:
         device.status = DeviceStatus.OFFLINE

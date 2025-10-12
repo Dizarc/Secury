@@ -127,9 +127,14 @@ async def get_device(device_id: int, session: sessionDep):
 
 #==========================================
 @app.get("/api/devices/{device_id}/trigger", response_model=dict)
-async def trigger_device(device_id: int, new_status: str, session: sessionDep):
+async def trigger_device(
+    device_id: int, 
+    new_status: str, 
+    session: sessionDep,
+    battery: int | None = None
+):
     """
-        Device state change for open/closed
+        Device state change for open/closed with battery percentage
         Will be called by the IoT devices
     """
     device = crud.get_device_by_id(session=session, device_id=device_id)
@@ -138,23 +143,46 @@ async def trigger_device(device_id: int, new_status: str, session: sessionDep):
         raise HTTPException(status_code=404, detail="Device not found")
     
     if new_status not in DeviceStatus:
-        raise HTTPException(status_code=404, detail="Status is invalid")
+        raise HTTPException(status_code=400, detail="Status is invalid")
     
-    device_in_update = DeviceUpdate(
-        status=new_status, 
-        last_updated=datetime.now(),
-    )
+    update_data = {
+        "status": new_status,
+        "last_updated": datetime.now(),
+        "last_seen": datetime.now(),
+    }
+
+    if battery is not None:
+        if 0 <= battery <= 100:
+            update_data["battery"] = battery
+        else:
+            raise HTTPException(status_code=400, detail="Battery must be 0-100")
+
+    device_in_update = DeviceUpdate(update_data)
     
     device = crud.update_device(session=session, db_device=device, new_device=device_in_update)
+
+    event_details = f"status changed to {new_status}"
+    if battery is not None:
+        event_details += f" (battery: {battery}%)"
 
     event = crud.create_event(
         session=session, 
         event=EventCreate(
             device_id = device_id,
-            type="status_change",
-            details=f"status changed to {new_status}",
+            type=EventType.STATUS_CHANGE,
+            details=event_details,
         ),
     )
+
+    if battery is not None and battery < 10:
+        crud.create_event(
+            session=session, 
+            event=EventCreate(
+                device_id = device_id,
+                type=EventType.BATTERY_LOW,
+                details=f"battery low: {battery}%",
+            ),
+        )
 
     return {
         "success": True,
@@ -189,7 +217,7 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.send_personal_message({
         "type": "initial_state",
         "devices": [ DevicePublic.model_validate(device).model_dump() for device in devices],
-        "events": [EventPublic.model_validate(event).model_dump() for event in events ],
+        "events": [EventPublic.model_validate(event).model_dump() for event in events],
     }, websocket)
 
     try:
@@ -209,14 +237,16 @@ async def websocket_endpoint(websocket: WebSocket):
 #==========================================
 async def monitor_device_health():
     """
-        Check for offline devices every 2 minutes
+        Check for offline devices every 2 minutes.
+        Device should send heartbeat every 15 minutes.
+        Wait 20 minutes before marking as offline.
     """
     while True:
         await asyncio.sleep(120)
 
         try:
             with Session(engine) as session:
-                offline_devices = crud.check_offline_devices(session=session, timeout_minutes=1)
+                offline_devices = crud.check_offline_devices(session=session, timeout_minutes=20)
 
                 for device in offline_devices:
                     print(f"Device {device.name} is offline")
