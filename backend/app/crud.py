@@ -57,7 +57,13 @@ def check_offline_devices(*, session: Session, timeout_minutes: int = 10) -> Lis
     return offline_devices
 
 def create_device(*, session: Session, device: DeviceCreate) -> Device:
-    db_obj = Device.model_validate(device)
+    device_data = device.model_dump(exclude_unset=True)
+
+    if "status" not in device_data or device_data["status"] is None:
+        device_data["status"] = DeviceStatus.CLOSED
+
+    db_obj = Device(**device_data)
+    
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
