@@ -207,7 +207,6 @@ async def websocket_endpoint(websocket: WebSocket):
         print(f"Websocket disconnected. Remaining: {len(manager.active_connections)}")
 
 #==========================================
-# TODO: Add a message from the sensors to the API so they show that theyre alive
 async def monitor_device_health():
     """
         Check for offline devices every 2 minutes
@@ -253,16 +252,14 @@ async def sensor_simulator():
                 updated_device = crud.update_device(session=session, db_device=device, new_device=update_data)
                 
                 print(f"Sim: {device.name} changed to: {new_status}")
-
-                event = EventCreate(
-                    device_id=device.id,
-                    type= EventType.STATUS_CHANGE,
-                    details=f"{device.name} changed to: {new_status}",
-                )
                 
                 event = crud.create_event(
                     session=session, 
-                    event=event
+                    event=EventCreate(
+                        device_id=device.id,
+                        type= EventType.STATUS_CHANGE,
+                        details=f"{device.name} changed to: {new_status}",
+                    )
                 )
 
                 await manager.broadcast({
