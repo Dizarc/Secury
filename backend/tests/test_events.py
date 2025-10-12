@@ -3,13 +3,17 @@ def test_get_events_default(client):
     assert response.status_code == 200
 
     data = response.json()
-    assert data["success"] is True
-    assert isinstance(data["events"], list)
-    assert "count" in data
+
+    assert isinstance(data, list)
+
+    # default limit = 10
+    assert len(data) <= 10
 
 def test_get_events_limit(client):
     response = client.get("/api/events?limit=5")
     assert response.status_code == 200
 
     data = response.json()
-    assert len(data["events"]) <= 5
+
+    assert isinstance(data, list)
+    assert len(data) <= 5
