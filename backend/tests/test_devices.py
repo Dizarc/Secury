@@ -1,4 +1,5 @@
-from app.models import DeviceStatus
+from backend.app.models import DeviceStatus
+
 def test_get_all_devices(client):
     response = client.get("/api/devices")
     assert response.status_code == 200

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
-from app import crud
-from app.models import Device, DeviceCreate, DeviceUpdate, DeviceStatus, EventCreate, EventType
+from backend.app import crud
+from backend.app.models import Device, DeviceCreate, DeviceUpdate, DeviceStatus, EventCreate, EventType
 
 def test_get_devices(session):
     devices = crud.get_devices(session=session)

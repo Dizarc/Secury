@@ -1,7 +1,7 @@
 """
 Test multiple components working together
 """
-from app.models import EventType, DeviceStatus
+from backend.app.models import EventType, DeviceStatus
 
 def test_trigger_creates_event(client):
 

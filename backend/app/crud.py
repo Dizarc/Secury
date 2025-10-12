@@ -2,7 +2,7 @@ from sqlmodel import Session, select
 from typing import List, Any
 from datetime import datetime, timedelta
 
-from app.models import (
+from backend.app.models import (
     Device, DeviceUpdate, DevicePublic, DeviceCreate, DeviceStatus, 
     Event, EventCreate, EventType
 )

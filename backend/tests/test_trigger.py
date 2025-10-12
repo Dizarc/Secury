@@ -1,4 +1,5 @@
-from app.models import DeviceStatus, EventType
+from backend.app.models import DeviceStatus, EventType
+
 def test_trigger_valid_device(client):
     response = client.get("/api/devices/1/trigger?new_status=open")
     assert response.status_code == 200

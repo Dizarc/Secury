@@ -4,9 +4,9 @@ from datetime import datetime
 from typing import List, Dict
 from sqlmodel import Session, select
 
-from app.core.database import engine, init_db, sessionDep
-from app import crud
-from app.models import (
+from backend.app.core.database import engine, init_db, sessionDep
+from backend.app import crud
+from backend.app.models import (
     Device, DevicePublic, DeviceCreate, DeviceUpdate, DeviceStatus,
     Event, EventPublic, EventCreate, EventType
 )
