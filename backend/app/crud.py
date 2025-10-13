@@ -13,17 +13,31 @@ def get_devices(*, session: Session) -> List[Device]:
 def get_device_by_id(*, session: Session, device_id: int) -> Device | None:
     return session.get(Device, device_id)
 
-def update_device(*, session: Session, db_device: Device, new_device: DeviceUpdate) -> Device:
+def update_device(*, session: Session, db_device: Device, device_in: DeviceUpdate) -> Device:
     """
         Updates device (Only stuff inside DeviceUpdate)
     """
-    device_data = new_device.model_dump(exclude_unset=True)
+    device_data = device_in.model_dump(exclude_unset=True)
     db_device.sqlmodel_update(device_data)
     session.add(db_device)
     session.commit()
     session.refresh(db_device)
 
     return db_device
+
+def delete_device(*, session: Session, device_id: int) -> bool:
+    """
+        Deletes device
+    """
+    device = session.get(Device, device_id)
+
+    if device is None:
+        return False
+    
+    session.delete(device)
+    session.commit()
+    
+    return True
 
 def check_offline_devices(*, session: Session, timeout_minutes: int = 10) -> List[Device]:
     """

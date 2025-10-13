@@ -35,6 +35,9 @@ class DeviceCreate(DeviceBase):
 
 # TODO: Add the last updated here with a datetime?
 class DeviceUpdate(SQLModel):
+    name: str | None = None
+    type: str | None = None
+    location: str | None = None
     status: DeviceStatus | None = None
     battery: int | None = None
     last_updated: datetime | None = None
