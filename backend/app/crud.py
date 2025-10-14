@@ -3,7 +3,7 @@ from typing import List, Any
 from datetime import datetime, timedelta
 
 from backend.app.models import (
-    Device, DeviceUpdate, DevicePublic, DeviceCreate, DeviceStatus, 
+    Device, DeviceUpdate, DeviceCreate, DeviceStatus, 
     Event, EventCreate, EventType
 )
 
@@ -19,6 +19,9 @@ def update_device(*, session: Session, db_device: Device, device_in: DeviceUpdat
     """
     device_data = device_in.model_dump(exclude_unset=True)
     db_device.sqlmodel_update(device_data)
+
+    db_device.last_seen = datetime.now()
+
     session.add(db_device)
     session.commit()
     session.refresh(db_device)
@@ -77,6 +80,8 @@ def create_device(*, session: Session, device: DeviceCreate) -> Device:
         device_data["status"] = DeviceStatus.CLOSED
 
     db_obj = Device(**device_data)
+    
+    db_obj.last_seen = datetime.now()
     
     session.add(db_obj)
     session.commit()

@@ -112,7 +112,6 @@ async def trigger_device(
     update_data = {
         "status": new_status,
         "last_updated": datetime.now(),
-        "last_seen": datetime.now(),
     }
 
     if battery is not None:

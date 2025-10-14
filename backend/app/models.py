@@ -41,8 +41,7 @@ class DeviceUpdate(SQLModel):
     status: DeviceStatus | None = None
     battery: int | None = None
     last_updated: datetime | None = None
-    last_seen: datetime | None = None
-
+    
 #==========================================
 class EventBase(SQLModel):
     device_id: int = Field(foreign_key="device.id")
