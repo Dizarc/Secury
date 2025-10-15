@@ -5,7 +5,7 @@ from backend.app import crud
 from backend.app.models import DevicePublic, EventPublic
 from backend.app.core.database import engine
 
-router = APIRouter(prefix="/ws", tags=["websocket"])
+websocket_router = APIRouter(prefix="/ws", tags=["websocket"])
 
 class ConnectionManager:
     def __init__(self):
@@ -32,7 +32,7 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-@router.websocket("")
+@websocket_router.websocket("")
 async def websocket_endpoint(websocket: WebSocket):
     """
         Websocket connection for real-time updates.

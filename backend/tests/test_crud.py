@@ -48,7 +48,7 @@ def test_update_device_status(session):
 
     update_data = DeviceUpdate(status=new_status)
 
-    updated_device = crud.update_device(session=session, db_device=device, new_device=update_data)
+    updated_device = crud.update_device(session=session, db_device=device, device_in=update_data)
     
     assert  updated_device.status == new_status
 
@@ -57,7 +57,7 @@ def test_update_device_battery(session):
 
     update_data = DeviceUpdate(battery=40)
 
-    updated_device = crud.update_device(session=session, db_device=device, new_device=update_data)
+    updated_device = crud.update_device(session=session, db_device=device, device_in=update_data)
 
     assert updated_device.battery == 40
 
@@ -73,7 +73,7 @@ def test_update_device_status_and_battery(session):
 
     update_data = DeviceUpdate(status=new_status, battery=50)
 
-    updated_device = crud.update_device(session=session, db_device=device, new_device=update_data)
+    updated_device = crud.update_device(session=session, db_device=device, device_in=update_data)
     
     assert  updated_device.status == new_status
     assert updated_device.battery == 50

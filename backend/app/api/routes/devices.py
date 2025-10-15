@@ -3,7 +3,7 @@ from datetime import datetime
 
 from backend.app import crud
 from backend.app.core.database import sessionDep
-from backend.app.api.routes.websocket import manager
+from backend.app.core.websocket import manager
 from backend.app.models import (
     DevicePublic, DeviceCreate, DeviceUpdate, DeviceStatus,
     EventCreate, EventType, EventPublic

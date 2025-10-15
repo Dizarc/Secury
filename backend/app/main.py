@@ -5,8 +5,10 @@ from sqlmodel import Session, select
 
 from backend.app.core.database import engine, init_db
 from backend.app import crud
-from backend.app.api.routes.websocket import manager
+from backend.app.core.websocket import manager
 from backend.app.api.main import api_router
+from backend.app.core.websocket import websocket_router
+
 from backend.app.models import (
     Device, DevicePublic, DeviceUpdate, DeviceStatus,
     EventPublic, EventCreate, EventType
@@ -119,4 +121,22 @@ app = FastAPI(
     description="Real-time home security monitoring system"
 )
 
-app.include_router(api_router)
+@app.get("/")
+async def root():
+    """
+        Check the health of the API
+    """
+    return {
+        "message": "IoT Security Monitor API",
+        "status": "running",
+        "version": "1.0.0",
+        "endpoints": {
+            "docs": "/docs",
+            "devices": "/api/devices",
+            "events": "/api/events",
+            "websocket": "/ws",
+        }
+    }
+
+app.include_router(api_router, prefix="/api")
+app.include_router(websocket_router)
