@@ -1,6 +1,9 @@
 from sqlmodel import SQLModel, Field
 from datetime import datetime
 from enum import Enum
+from pydantic import EmailStr
+
+import uuid
 
 class DeviceStatus(str, Enum):
     OPEN = "open"
@@ -19,13 +22,13 @@ class DeviceBase(SQLModel):
     battery: int = Field(default=100)
 
 class Device(DeviceBase, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     status: DeviceStatus = Field(default=DeviceStatus.CLOSED)
     last_updated: datetime = Field(default_factory= lambda: datetime.now())
     last_seen: datetime = Field(default_factory= lambda: datetime.now())
 
 class DevicePublic(DeviceBase):
-    id: int
+    id: uuid.UUID
     status: DeviceStatus
     last_updated: datetime
     last_seen: datetime
@@ -44,17 +47,36 @@ class DeviceUpdate(SQLModel):
     
 #==========================================
 class EventBase(SQLModel):
-    device_id: int = Field(foreign_key="device.id")
+    device_id: uuid.UUID = Field(foreign_key="device.id")
     type: EventType
     details: str
 
 class Event(EventBase, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     timestamp: datetime = Field(default_factory=lambda: datetime.now())
 
 class EventPublic(EventBase):
-    id: int
+    id: uuid.UUID
     timestamp: datetime
 
 class EventCreate(EventBase):
     pass
+
+#==========================================
+class UserBase(SQLModel):
+    email: EmailStr = Field(unique=True, index=True, max_length=255)
+    full_name: str | None = Field(default=None, max_length=255)
+
+class User(UserBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+
+class UserCreate(UserBase):
+    password: str = Field(min_length=8, max_length=40)
+
+class UserUpdate(UserBase):
+    email: EmailStr | None = Field(default=None, max_length=255)
+    password: str | None = Field(default=None, min_length=8, max_length=40)
+    full_name: str | None = Field(default=None, max_length=255)
+
+class UserPublic(UserBase):
+    id: uuid.UUID

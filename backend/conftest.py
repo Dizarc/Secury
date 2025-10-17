@@ -3,7 +3,7 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 from backend.app.main import app
-from backend.app.core.database import get_session
+from backend.app.api.deps import get_session
 from backend.app.models import Device, DeviceStatus
 
 import pytest

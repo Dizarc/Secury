@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from backend.app import crud
-from backend.app.core.database import sessionDep
+from backend.app.api.deps import sessionDep
 from backend.app.models import EventPublic
 
 router = APIRouter(prefix="/events", tags=["events"])
