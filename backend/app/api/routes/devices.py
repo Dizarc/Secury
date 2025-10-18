@@ -9,6 +9,8 @@ from backend.app.models import (
     EventCreate, EventType, EventPublic
 )
 
+import uuid
+
 router = APIRouter(prefix="/devices", tags=["devices"])
 
 @router.get("", response_model=list[DevicePublic])
@@ -38,7 +40,7 @@ async def create_device(device_in: DeviceCreate, session: sessionDep):
 
 #==========================================
 @router.get("/{device_id}", response_model=DevicePublic)
-async def get_device(device_id: int, session: sessionDep):
+async def get_device(device_id: uuid.UUID, session: sessionDep):
     """
         Get specific device by ID
     """
@@ -52,7 +54,7 @@ async def get_device(device_id: int, session: sessionDep):
 #TODO: create test for this
 #==========================================
 @router.patch("/{device_id}", response_model=DevicePublic)
-async def update_device(device_id: int, device_in: DeviceUpdate, session: sessionDep):
+async def update_device(device_id: uuid.UUID, device_in: DeviceUpdate, session: sessionDep):
     """
         Update Device
     """
@@ -73,7 +75,7 @@ async def update_device(device_id: int, device_in: DeviceUpdate, session: sessio
 #TODO: add tests for this
 #==========================================
 @router.delete("/{device_id}", response_model=str)
-async def delete_device(device_id: int, session: sessionDep):
+async def delete_device(device_id: uuid.UUID, session: sessionDep):
     """
         Delete User
     """
@@ -92,7 +94,7 @@ async def delete_device(device_id: int, session: sessionDep):
 #==========================================
 @router.get("/{device_id}/trigger", response_model=dict)
 async def trigger_device(
-    device_id: int, 
+    device_id: uuid.UUID, 
     new_status: str, 
     session: sessionDep,
     battery: int | None = None

@@ -7,10 +7,12 @@ from backend.app.models import (
     Event, EventCreate, EventType
 )
 
+import uuid 
+
 def get_devices(*, session: Session) -> List[Device]:
     return session.exec(select(Device)).all()
 
-def get_device_by_id(*, session: Session, device_id: int) -> Device | None:
+def get_device_by_id(*, session: Session, device_id: uuid.UUID) -> Device | None:
     return session.get(Device, device_id)
 
 def update_device(*, session: Session, db_device: Device, device_in: DeviceUpdate) -> Device:
@@ -28,7 +30,7 @@ def update_device(*, session: Session, db_device: Device, device_in: DeviceUpdat
 
     return db_device
 
-def delete_device(*, session: Session, device_id: int) -> bool:
+def delete_device(*, session: Session, device_id: uuid.UUID) -> bool:
     """
         Deletes device
     """
