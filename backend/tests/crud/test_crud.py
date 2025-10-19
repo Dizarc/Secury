@@ -9,17 +9,20 @@ def test_get_devices(session):
     assert len(devices) == 3
     assert all(hasattr(d, "name") for d in devices)
 
-def test_get_devices_by_id_valid(session):
-    device = crud.get_device_by_id(session=session, device_id=1)
+
+def test_get_devices_by_id_valid(session, uuids):
+    device = crud.get_device_by_id(session=session, device_id=uuids["window"])
 
     assert device is not None
-    assert device.id == 1
+    assert device.id == uuids["window"]
     assert device.name == "Room Window"
 
-def test_get_device_by_id_invalid(session):
-    device = crud.get_device_by_id(session=session, device_id=999)
+
+def test_get_device_by_id_invalid(session, uuids):
+    device = crud.get_device_by_id(session=session, device_id=uuids["invalid"])
     
     assert device is None
+
 
 def test_create_device(session):
     new_device = DeviceCreate(
@@ -36,8 +39,9 @@ def test_create_device(session):
     assert created.type == "Test Type"
     assert created.battery == 100
 
-def test_update_device_status(session):
-    device = crud.get_device_by_id(session=session, device_id=1)
+
+def test_update_device_status(session, uuids):
+    device = crud.get_device_by_id(session=session, device_id=uuids["window"])
     
     original_status = device.status
 
@@ -52,8 +56,9 @@ def test_update_device_status(session):
     
     assert  updated_device.status == new_status
 
-def test_update_device_battery(session):
-    device = crud.get_device_by_id(session=session, device_id=1)
+
+def test_update_device_battery(session, uuids):
+    device = crud.get_device_by_id(session=session, device_id=uuids["window"])
 
     update_data = DeviceUpdate(battery=40)
 
@@ -61,8 +66,9 @@ def test_update_device_battery(session):
 
     assert updated_device.battery == 40
 
-def test_update_device_status_and_battery(session):
-    device = crud.get_device_by_id(session=session, device_id=2)
+
+def test_update_device_status_and_battery(session, uuids):
+    device = crud.get_device_by_id(session=session, device_id=uuids["front_door"])
     
     original_status = device.status
 
@@ -78,8 +84,9 @@ def test_update_device_status_and_battery(session):
     assert  updated_device.status == new_status
     assert updated_device.battery == 50
 
-def test_check_offline_devices(session):
-    device = crud.get_device_by_id(session=session,device_id=1)
+
+def test_check_offline_devices(session, uuids):
+    device = crud.get_device_by_id(session=session, device_id=uuids["window"])
     
     device.last_seen = datetime.now() - timedelta(minutes=30)
     device.status = DeviceStatus.CLOSED
@@ -90,10 +97,11 @@ def test_check_offline_devices(session):
     offline_devices = crud.check_offline_devices(session=session, timeout_minutes=20)
 
     assert len(offline_devices) > 0
-    assert any(d.id == 1 for d in offline_devices)
+    assert any(d.id == uuids["window"] for d in offline_devices)
 
-    device = crud.get_device_by_id(session=session, device_id=1)
+    device = crud.get_device_by_id(session=session, device_id=uuids["window"])
     assert device.status == DeviceStatus.OFFLINE
+
 
 def test_check_offline_devices_no_change(session):
     """
@@ -113,10 +121,11 @@ def test_check_offline_devices_no_change(session):
 
     assert len(offline_devices) == 0
 
+
 #==========================================
-def test_create_event(session):
+def test_create_event(session, uuids):
     event_data = EventCreate(
-        device_id = 1,
+        device_id = uuids["window"],
         type = EventType.STATUS_CHANGE,
         details = "Test Event"
     )
@@ -124,17 +133,18 @@ def test_create_event(session):
     event = crud.create_event(session=session, event=event_data)
 
     assert event.id is not None
-    assert event.device_id == 1
+    assert event.device_id == uuids["window"]
     assert event.type == EventType.STATUS_CHANGE
     assert event.details == "Test Event"
     assert event.timestamp is not None
 
-def test_get_events_with_limit(session):
+
+def test_get_events_with_limit(session, uuids):
     for i in range(15):
         crud.create_event(
             session = session,
             event = EventCreate(
-                device_id = 1,
+                device_id = uuids["window"],
                 type = EventType.STATUS_CHANGE,
                 details=f"Event {i}"
             )

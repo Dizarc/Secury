@@ -17,13 +17,13 @@ def test_get_all_devices(client):
         assert "battery" in device
 
 
-def test_get_device_valid(client):
-    response = client.get("/api/devices/1")
+def test_get_device_valid(client, uuids):
+    response = client.get(f"/api/devices/{uuids["window"]}")
     assert response.status_code == 200
 
     data = response.json()
 
-    assert data["id"] == 1
+    assert data["id"] == str(uuids["window"])
     assert data["name"] == "Room Window"
     assert data["type"] == "Window"
     assert data["location"] == "Room 1"
@@ -33,16 +33,16 @@ def test_get_device_valid(client):
     assert "last_seen" in data
 
 
-def test_get_device_invalid(client):
-    response = client.get("/api/devices/999")
+def test_get_device_invalid(client, uuids):
+    response = client.get(f"/api/devices/{uuids["invalid"]}")
     assert response.status_code == 404
     
     data = response.json()
     assert data["detail"] == "Device not found"
 
 
-def test_trigger_valid_device(client):
-    response = client.get("/api/devices/1/trigger?new_status=open")
+def test_trigger_valid_device(client, uuids):
+    response = client.get(f"/api/devices/{uuids["window"]}/trigger?new_status=open")
     assert response.status_code == 200
 
     data = response.json()
@@ -52,14 +52,14 @@ def test_trigger_valid_device(client):
     assert "event" in data
 
     assert data["device"]["status"] == DeviceStatus.OPEN.value
-    assert data["device"]["id"] == 1
+    assert data["device"]["id"] == str(uuids["window"])
 
     assert data["event"]["type"] == EventType.STATUS_CHANGE.value
-    assert data["event"]["device_id"] == 1
+    assert data["event"]["device_id"] == str(uuids["window"])
 
 
-def  test_trigger_invalid_device(client):
-    response = client.get("/api/devices/999/trigger?new_status=open")
+def  test_trigger_invalid_device(client, uuids):
+    response = client.get(f"/api/devices/{uuids["invalid"]}/trigger?new_status=open")
     assert response.status_code == 404
 
     data = response.json()

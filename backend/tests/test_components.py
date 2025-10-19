@@ -3,12 +3,12 @@ Test multiple components working together
 """
 from backend.app.models import EventType, DeviceStatus
 
-def test_trigger_creates_event(client):
+def test_trigger_creates_event(client, uuids):
 
     events_before = client.get("/api/events?limit=100").json()
     initial_count = len(events_before)
 
-    response = client.get("/api/devices/1/trigger?new_status=open")
+    response = client.get(f"/api/devices/{uuids["window"]}/trigger?new_status=open")
     assert response.status_code == 200
 
     events_after = client.get("/api/events?limit=100").json()
@@ -17,12 +17,13 @@ def test_trigger_creates_event(client):
     assert new_count > initial_count
 
     latest_event = events_after[0]
-    assert latest_event["device_id"] == 1
+    assert latest_event["device_id"] == str(uuids["window"])
     assert latest_event["type"] == EventType.STATUS_CHANGE.value
 
-def test_trigger_updates_device_state(client):
+
+def test_trigger_updates_device_state(client, uuids):
     
-    device_before = client.get("/api/devices/1").json()
+    device_before = client.get(f"/api/devices/{uuids["window"]}").json()
     initial_status = device_before["status"]
 
     if initial_status == DeviceStatus.CLOSED.value:
@@ -30,15 +31,17 @@ def test_trigger_updates_device_state(client):
     else:
         new_status = DeviceStatus.CLOSED.value
 
-    response = client.get(f"/api/devices/1/trigger?new_status={new_status}")
+    response = client.get(f"/api/devices/{uuids["window"]}/trigger?new_status={new_status}")
     assert response.status_code == 200
 
-    device_after = client.get("/api/devices/1").json()
+    device_after = client.get(f"/api/devices/{uuids["window"]}").json()
     assert device_after["status"] == new_status
     assert device_after["status"] != initial_status
 
-def test_low_battery_creates_two_events(client):
-    response = client.get("/api/devices/1/trigger?new_status=open&battery=6")
+
+def test_low_battery_creates_two_events(client, uuids):
+
+    response = client.get(f"/api/devices/{uuids["window"]}/trigger?new_status=open&battery=6")
     assert response.status_code == 200
 
     events = client.get("/api/events?limit=10").json()
@@ -48,47 +51,51 @@ def test_low_battery_creates_two_events(client):
     assert EventType.STATUS_CHANGE in event_types
     assert EventType.BATTERY_LOW in event_types
 
-def test_multiple_device_triggers(client):
-    devices = [1, 2, 3]
+def test_multiple_device_triggers(client, uuids):
 
-    for device_id in devices:
+    for name, device_id in list(uuids.items())[:3]:
+        print(device_id)
         response = client.get(f"/api/devices/{device_id}/trigger?new_status=open")
         assert response.status_code == 200
 
         data = response.json()
 
-        assert data["device"]["id"] == device_id
+        assert data["device"]["id"] == str(device_id)
         assert data["device"]["status"] == DeviceStatus.OPEN.value
 
     all_devices = client.get("/api/devices").json()
+    uuid_values = [str(v) for v in uuids.values()]
     for device in all_devices:
-        if device["id"] in devices:
+        if device["id"] in uuid_values:
             assert device["status"] == DeviceStatus.OPEN.value
 
-def test_device_state_persists_across_multiple_requests(client):
-    client.get(f"/api/devices/1/trigger?new_status=open")
+def test_device_state_persists_across_multiple_requests(client, uuids):
+
+    client.get(f"/api/devices/{uuids["window"]}/trigger?new_status=open")
 
     for _ in range(3):
-        device = client.get("/api/devices/1").json()
+        device = client.get(f"/api/devices/{uuids["window"]}").json()
         assert device["status"] == DeviceStatus.OPEN.value
 
-    client.get("/api/devices/1/trigger?new_status=closed")
+    client.get(f"/api/devices/{uuids["window"]}/trigger?new_status=closed")
 
     for _ in range(3):
-        device = client.get("/api/devices/1").json()
+        device = client.get(f"/api/devices/{uuids["window"]}").json()
         assert device["status"] == DeviceStatus.CLOSED.value
 
-def test_battery_update_persists(client):
+def test_battery_update_persists(client, uuids):
+
     battery_levels = [100, 75, 50, 25]
 
     for battery in battery_levels:
-        response = client.get(f"/api/devices/1/trigger?new_status=open&battery={battery}")
+        response = client.get(f"/api/devices/{uuids["window"]}/trigger?new_status=open&battery={battery}")
         assert response.status_code == 200
 
-        device = client.get("/api/devices/1").json()
+        device = client.get(f"/api/devices/{uuids["window"]}").json()
         assert device["battery"] == battery
 
 def test_websocket_receives_device_updates(client):
+
     with client.websocket_connect("/ws") as websocket:
         initial = websocket.receive_json()
         assert initial["type"] == "initial_state"
@@ -97,12 +104,13 @@ def test_websocket_receives_device_updates(client):
         ack = websocket.receive_json()
         assert ack["type"] == "ack"
 
-def test_api_error_handling(client):
+def test_api_error_handling(client, uuids):
+
     invalid_requests = [
-        ("api/devices/999", 404),
-        ("api/devices/999/trigger?new_status=open", 404),
-        ("api/devices/1/trigger?new_status=invalid", 400),
-        ("api/devices/1/trigger?new_status=open&battery=150", 400),
+        (f"api/devices/{uuids["invalid"]}", 404),
+        (f"api/devices/{uuids["invalid"]}/trigger?new_status=open", 404),
+        (f"api/devices/{uuids["window"]}/trigger?new_status=invalid", 400),
+        (f"api/devices/{uuids["window"]}/trigger?new_status=open&battery=150", 400),
     ]
 
     for endpoint, expected_status in invalid_requests:
@@ -110,25 +118,27 @@ def test_api_error_handling(client):
         assert response.status_code == expected_status
         assert "detail" in response.json()
 
-def test_battery_zero_valid_percentage(client):
-    response = client.get("/api/devices/1/trigger?new_status=open&battery=0")
+def test_battery_zero_valid_percentage(client, uuids):
+
+    response = client.get(f"/api/devices/{uuids["window"]}/trigger?new_status=open&battery=0")
     assert response.status_code == 200
     
-    device = client.get("/api/devices/1").json()
+    device = client.get(f"/api/devices/{uuids["window"]}").json()
     assert device["battery"] == 0
 
-def test_battery_hundred_valid_percentage(client):
-    response = client.get("/api/devices/1/trigger?new_status=open&battery=100")
+def test_battery_hundred_valid_percentage(client, uuids):
+
+    response = client.get(f"/api/devices/{uuids["window"]}/trigger?new_status=open&battery=100")
     assert response.status_code == 200
     
-    device = client.get("/api/devices/1").json()
+    device = client.get(f"/api/devices/{uuids["window"]}").json()
     assert device["battery"] == 100
 
-def test_full_device_lifecycle(client):
+def test_full_device_lifecycle(client, uuids):
     """
         test: check status -> trigger -> verify event -> check new status
     """
-    initial_device = client.get("/api/devices/1").json()
+    initial_device = client.get(f"/api/devices/{uuids["window"]}").json()
     initial_status = initial_device["status"]
     initial_battery = initial_device["battery"]
 
@@ -139,7 +149,7 @@ def test_full_device_lifecycle(client):
 
     new_battery = 80
 
-    trigger_response = client.get(f"/api/devices/1/trigger?new_status={new_status}&battery={new_battery}")
+    trigger_response = client.get(f"/api/devices/{uuids["window"]}/trigger?new_status={new_status}&battery={new_battery}")
     assert trigger_response.status_code == 200
     trigger_data = trigger_response.json()
 
@@ -148,7 +158,7 @@ def test_full_device_lifecycle(client):
     assert trigger_data["device"]["battery"] == new_battery
     assert trigger_data["event"]["type"] == EventType.STATUS_CHANGE.value
 
-    updated_device = client.get("/api/devices/1").json()
+    updated_device = client.get(f"/api/devices/{uuids["window"]}").json()
     
     assert updated_device["status"] == new_status
     assert updated_device["battery"] == new_battery
@@ -156,6 +166,6 @@ def test_full_device_lifecycle(client):
     events = client.get("/api/events?limit=5").json()
     latest_event = events[0]
     
-    assert latest_event["device_id"] == 1
+    assert latest_event["device_id"] == str(uuids["window"])
     assert latest_event["type"] == EventType.STATUS_CHANGE.value
     assert new_status in latest_event["details"]

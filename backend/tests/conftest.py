@@ -7,9 +7,22 @@ from backend.app.api.deps import get_session
 from backend.app.models import Device, DeviceStatus
 
 import pytest
+import uuid 
+
+@pytest.fixture(name="uuids", scope="module")
+def test_uuids():
+    
+    uuids = {
+        "window": uuid.uuid4(),
+        "front_door": uuid.uuid4(),
+        "back_door": uuid.uuid4(),
+        "invalid": uuid.uuid4(),
+    }
+    yield uuids
+
 
 @pytest.fixture(name="session", scope="function")
-def session_fixture():
+def session_fixture(uuids):
     """
         Create a new database for each test.
     """
@@ -24,7 +37,7 @@ def session_fixture():
     with Session(engine) as session:
         session.add_all([
             Device(
-                id = 1,
+                id = uuids["window"],
                 name = "Room Window",
                 type = "Window",
                 location = "Room 1",
@@ -32,7 +45,7 @@ def session_fixture():
                 battery = 100,
             ),
             Device(
-                id = 2,
+                id = uuids["front_door"],
                 name = "Front door",
                 type = "Door",
                 location = "Main Entrance",
@@ -40,7 +53,7 @@ def session_fixture():
                 battery = 75,
             ),
             Device(
-                id = 3,
+                id = uuids["back_door"],
                 name = "Back door",
                 type = "Door",
                 location = "Back Entrance",
