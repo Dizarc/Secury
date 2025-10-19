@@ -3,11 +3,11 @@ from fastapi import FastAPI
 from datetime import datetime
 from sqlmodel import Session, select
 
-from backend.app.core.database import engine, init_db
 from backend.app import crud
-from backend.app.core.websocket import manager
 from backend.app.api.main import api_router
-from backend.app.core.websocket import websocket_router
+from backend.app.core.database import engine, init_db
+from backend.app.core.websocket import manager, websocket_router
+from backend.app.core.config import logger
 
 from backend.app.models import (
     Device, DevicePublic, DeviceUpdate, DeviceStatus,
@@ -18,8 +18,6 @@ from backend.app.models import (
 import asyncio
 import random
 
-#TODO: Remove every print statement for production deployment and replace it with logging
-
 #==========================================
 # run before startup and yield after shutdown
 @asynccontextmanager
@@ -27,9 +25,10 @@ async def lifespan(app: FastAPI):
     """
         Runs when server starts
     """
-    print("Starting server...")
+    logger.info("Starting server...")
     
-    print("Initializing database...")
+    logger.info("Initializing database...")
+
     with Session(engine) as session:
         init_db(session)
 
@@ -42,14 +41,14 @@ async def lifespan(app: FastAPI):
             ])
             session.commit()
 
-    print("Starting sensor simulation...")
+    logger.info("Starting sensor simulation...")
     asyncio.create_task(sensor_simulator())
 
-    print("Starting healthchecking...")
+    logger.info("Starting healthchecking...")
     asyncio.create_task(monitor_device_health())
     yield
 
-    print("Shutting down server...")
+    logger.info("Shutting down server...")
 
 #==========================================
 async def monitor_device_health():
@@ -66,7 +65,7 @@ async def monitor_device_health():
                 offline_devices = crud.check_offline_devices(session=session, timeout_minutes=20)
 
                 for device in offline_devices:
-                    print(f"Device {device.name} is offline")
+                    logger.info(f"Device {device.name} is offline")
 
                     await manager.broadcast({
                         "type": "device_offline",
@@ -74,7 +73,7 @@ async def monitor_device_health():
                         "timestamp": datetime.now().isoformat(),
                     })
         except Exception as e:
-            print(f"Erorr in healthcheck: {e}")
+            logger.error(f"Erorr in healthcheck: {e}")
 
 #==========================================
 # Simulate sensors (TODO: remove when real sensors are added)
@@ -98,7 +97,7 @@ async def sensor_simulator():
                 update_data = DeviceUpdate(status=new_status, last_updated=datetime.now())
                 updated_device = crud.update_device(session=session, db_device=device, device_in=update_data)
                 
-                print(f"Sim: {device.name} changed to: {new_status}")
+                logger.info(f"Sim: {device.name} changed to: {new_status}")
                 
                 event = crud.create_event(
                     session=session, 
@@ -126,6 +125,9 @@ async def root():
     """
         Check the health of the API
     """
+    
+    logger.info("Root requested")
+
     return {
         "message": "IoT Security Monitor API",
         "status": "running",

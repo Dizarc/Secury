@@ -38,7 +38,7 @@ log_config = {
             "formatter": "json",
             "stream": "ext://sys.stdout",
         },
-        # Log rotation in files
+        # Log rotation for files
         "rotating_file": {
             "class": "logging.handlers.RotatingFileHandler",
             "level": "INFO",
@@ -50,7 +50,7 @@ log_config = {
     },
     # Control logging behavior (Capture Debug and up)
     "loggers": {
-        "app": {"handlers": ["console", "file"], "level": "DEBUG", "propagate": False},
+        "app": {"handlers": ["console", "rotating_file"], "level": "DEBUG", "propagate": False},
     },
     "root": {"handlers": ["console"], "level": "DEBUG"}
 }
