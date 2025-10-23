@@ -34,7 +34,6 @@ async def get_all_devices(session: sessionDep):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-#TODO: Create test for this
 #==========================================
 @router.post("", response_model=DevicePublic)
 async def create_device(device_in: DeviceCreate, session: sessionDep):
@@ -86,7 +85,6 @@ async def get_device(device_id: uuid.UUID, session: sessionDep):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-#TODO: create test for this
 #==========================================
 @router.patch("/{device_id}", response_model=DevicePublic)
 async def update_device(device_id: uuid.UUID, device_in: DeviceUpdate, session: sessionDep):
