@@ -88,6 +88,27 @@ def test_update_device_invalid(client, uuids):
     assert data["detail"] == "Device not found"
 
 
+def test_delete_device_valid(client, uuids):
+    response = client.delete(f"/api/devices/{uuids["window"]}")
+
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert data == "Deleted device successfully"
+
+    new_response = client.get(f"/api/devices/{uuids["window"]}")
+    assert new_response.status_code == 404
+
+
+def test_delete_device_invalid(client, uuids):
+    response = client.delete(f"/api/devices/{uuids["invalid"]}")
+    assert response.status_code == 404
+    
+    data = response.json()
+
+    assert data["detail"] == "Error deleting device"
+
+
 def test_trigger_valid_device(client, uuids):
     response = client.get(f"/api/devices/{uuids["window"]}/trigger?new_status=open")
     assert response.status_code == 200
