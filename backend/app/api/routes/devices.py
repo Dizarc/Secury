@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from datetime import datetime
 
 from backend.app import crud
-from backend.app.api.deps import sessionDep
+from backend.app.api.deps import sessionDep, CurrentUser
 from backend.app.core.websocket import manager
 from backend.app.core.config import logger
 from backend.app.models import (
@@ -15,9 +15,12 @@ import uuid
 
 router = APIRouter(prefix="/devices", tags=["devices"])
 
+# TODO: import status from fastapi and change all the codes to codes from that
 
+
+# TODO: Change authentication to ESP authentication
 @router.get("", response_model=list[DevicePublic])
-async def get_all_devices(session: sessionDep):
+async def get_all_devices(session: sessionDep, current_user: CurrentUser):
     """
         Get a list of all devices
     """
@@ -117,7 +120,7 @@ async def update_device(device_id: uuid.UUID, device_in: DeviceUpdate, session: 
         logger.exception(f"Error updating device with id: {device_id}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-#TODO: add tests for this
+
 #==========================================
 @router.delete("/{device_id}", response_model=str)
 async def delete_device(device_id: uuid.UUID, session: sessionDep):

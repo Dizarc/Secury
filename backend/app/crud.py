@@ -4,16 +4,20 @@ from datetime import datetime, timedelta
 
 from backend.app.models import (
     Device, DeviceUpdate, DeviceCreate, DeviceStatus, 
-    Event, EventCreate, EventType
+    Event, EventCreate, EventType,
+    User
 )
 
 import uuid 
 
+
 def get_devices(*, session: Session) -> List[Device]:
     return session.exec(select(Device)).all()
 
+
 def get_device_by_id(*, session: Session, device_id: uuid.UUID) -> Device | None:
     return session.get(Device, device_id)
+
 
 def update_device(*, session: Session, db_device: Device, device_in: DeviceUpdate) -> Device:
     """
@@ -30,6 +34,7 @@ def update_device(*, session: Session, db_device: Device, device_in: DeviceUpdat
 
     return db_device
 
+
 def delete_device(*, session: Session, device_id: uuid.UUID) -> bool:
     """
         Deletes device
@@ -43,6 +48,7 @@ def delete_device(*, session: Session, device_id: uuid.UUID) -> bool:
     session.commit()
     
     return True
+
 
 def check_offline_devices(*, session: Session, timeout_minutes: int = 10) -> List[Device]:
     """
@@ -75,6 +81,7 @@ def check_offline_devices(*, session: Session, timeout_minutes: int = 10) -> Lis
 
     return offline_devices
 
+
 def create_device(*, session: Session, device: DeviceCreate) -> Device:
     device_data = device.model_dump(exclude_unset=True)
 
@@ -91,8 +98,11 @@ def create_device(*, session: Session, device: DeviceCreate) -> Device:
 
     return db_obj
 
+
+#==========================================
 def get_events(*, session: Session, limit) -> List[Event]:
     return session.exec(select(Event).order_by(Event.timestamp).limit(limit=limit)).all()
+
 
 def create_event(*, session: Session, event: EventCreate) -> Event:
     db_obj = Event.model_validate(event)
@@ -101,3 +111,8 @@ def create_event(*, session: Session, event: EventCreate) -> Event:
     session.refresh(db_obj)
 
     return db_obj
+
+
+#==========================================
+def get_user(*, session: Session, email: str) -> User:
+    return session.exec(select(User).filter(User.email == email)).first()

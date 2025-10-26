@@ -11,7 +11,8 @@ from backend.app.core.config import logger
 
 from backend.app.models import (
     Device, DevicePublic, DeviceUpdate, DeviceStatus,
-    EventPublic, EventCreate, EventType
+    EventPublic, EventCreate, EventType,
+    User
 )
 
 # TODO: remove when you remove sensor_simulator()
@@ -38,6 +39,9 @@ async def lifespan(app: FastAPI):
                 Device(name="Room Window", type="window", location="Room 1"),
                 Device(name="Front door", type="door", location="Main Entrance"),
                 Device(name="Back door", type="door", location="Back Entrance"),
+            
+                User(email="john@example.com", full_name="John Doe", hashed_password="fakepassword1"),
+                User(email="Jane@example.com", full_name="Jane Doe", hashed_password="fakepassword2"),
             ])
             session.commit()
 
@@ -82,7 +86,7 @@ async def sensor_simulator():
         Simulate random sensor events
     """
     while True:
-        await asyncio.sleep(5)
+        await asyncio.sleep(30)
 
         with Session(engine) as session:
             devices = crud.get_devices(session=session)
