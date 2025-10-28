@@ -10,9 +10,9 @@ from backend.app.core.websocket import manager, websocket_router
 from backend.app.core.config import logger
 
 from backend.app.models import (
-    Device, DevicePublic, DeviceUpdate, DeviceStatus,
+    Device, DevicePublic, DeviceUpdate, DeviceStatus, DeviceCreate,
     EventPublic, EventCreate, EventType,
-    User
+    User, UserCreate
 )
 
 # TODO: remove when you remove sensor_simulator()
@@ -35,15 +35,37 @@ async def lifespan(app: FastAPI):
 
         # If db is empty (TODO: Remove after)
         if not session.exec(select(Device)).first():
-            session.add_all([
-                Device(name="Room Window", type="window", location="Room 1"),
-                Device(name="Front door", type="door", location="Main Entrance"),
-                Device(name="Back door", type="door", location="Back Entrance"),
-            
-                User(email="john@example.com", full_name="John Doe", hashed_password="fakepassword1"),
-                User(email="Jane@example.com", full_name="Jane Doe", hashed_password="fakepassword2"),
-            ])
-            session.commit()
+            crud.create_device(
+                session=session,
+                device=DeviceCreate(
+                    name="Room Window", type="Window", location="Room 1"
+                )
+            )
+            crud.create_device(
+                session=session,
+                device=DeviceCreate(
+                    name="Front door", type="door", location="Main Entrance"
+                )
+            )
+            crud.create_device(
+                session=session,
+                device=DeviceCreate(
+                    name="Back door", type="door", location="Back Entrance"
+                )
+            )
+
+            crud.create_user(
+                session=session,
+                user=UserCreate(
+                    email="john@example.com", full_name="John Doe", password="password1"
+                )
+            )
+            crud.create_user(
+                session=session,
+                user=UserCreate(
+                    email="Jane@example.com", full_name="Jane Doe", password="password2"
+                )
+            )
 
     logger.info("Starting sensor simulation...")
     asyncio.create_task(sensor_simulator())

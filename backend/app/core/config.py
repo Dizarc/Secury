@@ -1,9 +1,11 @@
+import json
+import logging
+import secrets
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from logging.config import dictConfig
 from datetime import datetime
 
-import json
-import logging
 
 class JsonFormatter(logging.Formatter):
     def format(self, record):
@@ -66,6 +68,9 @@ class Settings(BaseSettings):
         env_ignore_empty=True,
         extra="ignore",
     )
+
+    SECRET_KEY: str = "083ceb3dab50bea75023667ccd881b29be0cd98e4e19213115181fe5e47d6a14" # secrets.token_urlsafe(32)
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8 # 60 min * 24 h * 8 days = 8 days
 
     DATABASE_FILENAME: str = "database.db"
     DATABASE_URL: str = f"sqlite:///{DATABASE_FILENAME}"
