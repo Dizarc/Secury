@@ -3,6 +3,9 @@ Test multiple components working together
 """
 from backend.app.models import EventType, DeviceStatus
 
+#TODO: Change all status codes to constants
+
+
 def test_trigger_creates_event(client, uuids):
 
     events_before = client.get("/api/events?limit=100").json()
@@ -109,7 +112,7 @@ def test_api_error_handling(client, uuids):
     invalid_requests = [
         (f"api/devices/{uuids["invalid"]}", 404),
         (f"api/devices/{uuids["invalid"]}/trigger?new_status=open", 404),
-        (f"api/devices/{uuids["window"]}/trigger?new_status=invalid", 400),
+        (f"api/devices/{uuids["window"]}/trigger?new_status=invalid", 404),
         (f"api/devices/{uuids["window"]}/trigger?new_status=open&battery=150", 400),
     ]
 

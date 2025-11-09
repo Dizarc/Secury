@@ -1,3 +1,5 @@
+#TODO: Change all status codes to constants
+
 def test_get_events_default(client):
     response = client.get("/api/events")
     assert response.status_code == 200

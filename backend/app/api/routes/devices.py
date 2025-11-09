@@ -16,9 +16,9 @@ import uuid
 router = APIRouter(prefix="/devices", tags=["devices"])
 
 
-# TODO: Change authentication to ESP authentication
+# TODO: Add real ESP authentication
 @router.get("", response_model=list[DevicePublic])
-async def get_all_devices(session: sessionDep, current_user: CurrentUser):
+async def get_all_devices(session: sessionDep):
     """
         Get a list of all devices
     """

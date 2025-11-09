@@ -4,25 +4,36 @@ from sqlmodel.pool import StaticPool
 
 from backend.app.main import app
 from backend.app.api.deps import get_session
-from backend.app.models import Device, DeviceStatus
+from backend.app.models import Device, DeviceStatus, User
+from backend.app.core.security import get_password_hash
 
 import pytest
 import uuid 
 
 @pytest.fixture(name="uuids", scope="module")
 def test_uuids():
-    
     uuids = {
         "window": uuid.uuid4(),
         "front_door": uuid.uuid4(),
         "back_door": uuid.uuid4(),
         "invalid": uuid.uuid4(),
+        
     }
     yield uuids
 
 
+@pytest.fixture(name="user", scope="session")
+def test_user():
+    user = {
+        "email": "john@example.com", 
+        "full_name": "John Doe", 
+        "password": "password1"
+    }
+    yield user
+
+
 @pytest.fixture(name="session", scope="function")
-def session_fixture(uuids):
+def session_fixture(uuids, user):
     """
         Create a new database for each test.
     """
@@ -59,6 +70,11 @@ def session_fixture(uuids):
                 location = "Back Entrance",
                 status = DeviceStatus.OPEN,
                 battery = 50,
+            ),
+            User(
+                email = user["email"], 
+                full_name = user["full_name"], 
+                hashed_password = get_password_hash(user["password"])
             )
         ])
         session.commit()

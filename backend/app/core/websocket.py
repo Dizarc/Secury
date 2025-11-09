@@ -5,9 +5,10 @@ from backend.app import crud
 from backend.app.models import DevicePublic, EventPublic
 from backend.app.core.database import engine
 from backend.app.core.config import logger
-from backend.app.api.deps import tokenDep
+
 
 websocket_router = APIRouter(prefix="/ws", tags=["websocket"])
+
 
 class ConnectionManager:
     def __init__(self):
@@ -32,10 +33,13 @@ class ConnectionManager:
                 logger.error(f"Error sending message: {e}")
                 self.disconnect(connection)
 
+
 manager = ConnectionManager()
 
+
+# TODO: Implement security for websocket
 @websocket_router.websocket("")
-async def websocket_endpoint(websocket: WebSocket, token: tokenDep):
+async def websocket_endpoint(websocket: WebSocket):
     """
         Websocket connection for real-time updates.
         Frontend will connect here to receive live sensor updates.

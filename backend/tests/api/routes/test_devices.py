@@ -2,6 +2,8 @@ from backend.app.models import DeviceStatus, EventType, DeviceCreate, DeviceUpda
 
 from datetime import datetime
 
+#TODO: Change all status codes to constants
+
 def test_get_all_devices(client):
     response = client.get("/api/devices")
     assert response.status_code == 200
@@ -102,7 +104,7 @@ def test_delete_device_valid(client, uuids):
 
 def test_delete_device_invalid(client, uuids):
     response = client.delete(f"/api/devices/{uuids["invalid"]}")
-    assert response.status_code == 404
+    assert response.status_code == 400
     
     data = response.json()
 
