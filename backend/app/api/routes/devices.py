@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, status
 from datetime import datetime
 
 from backend.app import crud
@@ -14,8 +14,6 @@ import uuid
 
 
 router = APIRouter(prefix="/devices", tags=["devices"])
-
-# TODO: import status from fastapi and change all the codes to codes from that
 
 
 # TODO: Change authentication to ESP authentication
@@ -34,7 +32,7 @@ async def get_all_devices(session: sessionDep, current_user: CurrentUser):
     
     except Exception:
         logger.exception("Error retrieving device list")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 
 
 #==========================================
@@ -59,7 +57,7 @@ async def create_device(device_in: DeviceCreate, session: sessionDep):
     
     except Exception:
         logger.exception("Unexpected error during device creation")
-        raise HTTPException(status_code=500, detail="Failed to create device")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create device")
 
 
 #==========================================
@@ -75,7 +73,7 @@ async def get_device(device_id: uuid.UUID, session: sessionDep):
 
         if not device:
             logger.warning(f"Device: {device_id} not found")
-            raise HTTPException(status_code=404, detail="Device not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
         
         logger.debug(f"Device: {device_id} data retrieved successfully")
         
@@ -85,7 +83,7 @@ async def get_device(device_id: uuid.UUID, session: sessionDep):
         raise
     except Exception:
         logger.exception(f"Error retrieving device with id: {device_id}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 
 
 #==========================================
@@ -101,7 +99,7 @@ async def update_device(device_id: uuid.UUID, device_in: DeviceUpdate, session: 
 
         if not device:
             logger.warning(f"Device: {device_id} not found for update")
-            raise HTTPException(status_code=404, detail="Device not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
         
         updated_device = crud.update_device(session=session, db_device=device, device_in=device_in)
 
@@ -118,7 +116,7 @@ async def update_device(device_id: uuid.UUID, device_in: DeviceUpdate, session: 
         raise
     except Exception:
         logger.exception(f"Error updating device with id: {device_id}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 
 
 #==========================================
@@ -134,7 +132,7 @@ async def delete_device(device_id: uuid.UUID, session: sessionDep):
 
         if not success:
             logger.warning(f"Failed to delete device: {device_id}")
-            raise HTTPException(status_code=404, detail="Error deleting device")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Error deleting device")
         
         logger.info(f"Device: {device_id} deleted successfully")
 
@@ -149,7 +147,7 @@ async def delete_device(device_id: uuid.UUID, session: sessionDep):
         raise
     except Exception:
         logger.exception(f"Error deleting device: {device_id}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 
 
 #==========================================
@@ -171,11 +169,11 @@ async def trigger_device(
     try:
         if not device:
             logger.warning(f"Device with id: {device_id} is not found")
-            raise HTTPException(status_code=404, detail="Device not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
         
         if new_status not in DeviceStatus:
             logger.warning(f"Device with id: {device_id} is not found")
-            raise HTTPException(status_code=400, detail="Status is invalid")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Status is invalid")
         
         update_data = {
             "status": new_status,
@@ -187,7 +185,7 @@ async def trigger_device(
                 update_data["battery"] = battery
             else:
                 logger.warning(f"Battery value {battery} is out of range (0-100)")
-                raise HTTPException(status_code=400, detail="Battery must be 0-100")
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Battery must be 0-100")
 
         logger.debug(f"Updating device: {device_id} with: {update_data}")
         device_in_update = DeviceUpdate(**update_data) 
@@ -233,4 +231,4 @@ async def trigger_device(
         raise
     except Exception as e:
         logger.exception(f"Unexpected error while processing trigger for device: {device_id}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")

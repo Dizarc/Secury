@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, status
 
 from backend.app import crud
 from backend.app.api.deps import sessionDep
@@ -23,4 +23,4 @@ async def get_events(session: sessionDep, limit: int = 10):
     
     except Exception:
         logger.exception("Error retrieving events")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
