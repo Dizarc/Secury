@@ -16,9 +16,8 @@ import uuid
 router = APIRouter(prefix="/devices", tags=["devices"])
 
 
-# TODO: Add real ESP authentication
 @router.get("", response_model=list[DevicePublic])
-async def get_all_devices(session: sessionDep):
+async def get_all_devices(session: sessionDep, current_user: CurrentUser):
     """
         Get a list of all devices
     """
@@ -37,7 +36,7 @@ async def get_all_devices(session: sessionDep):
 
 #==========================================
 @router.post("", response_model=DevicePublic)
-async def create_device(device_in: DeviceCreate, session: sessionDep):
+async def create_device(device_in: DeviceCreate, session: sessionDep, current_user: CurrentUser):
     """
         Create new device
     """
@@ -62,7 +61,7 @@ async def create_device(device_in: DeviceCreate, session: sessionDep):
 
 #==========================================
 @router.get("/{device_id}", response_model=DevicePublic)
-async def get_device(device_id: uuid.UUID, session: sessionDep):
+async def get_device(device_id: uuid.UUID, session: sessionDep, current_user: CurrentUser):
     """
         Get specific device by ID
     """
@@ -88,7 +87,7 @@ async def get_device(device_id: uuid.UUID, session: sessionDep):
 
 #==========================================
 @router.patch("/{device_id}", response_model=DevicePublic)
-async def update_device(device_id: uuid.UUID, device_in: DeviceUpdate, session: sessionDep):
+async def update_device(device_id: uuid.UUID, device_in: DeviceUpdate, session: sessionDep, current_user: CurrentUser):
     """
         Update Device
     """
@@ -121,9 +120,9 @@ async def update_device(device_id: uuid.UUID, device_in: DeviceUpdate, session: 
 
 #==========================================
 @router.delete("/{device_id}", response_model=str)
-async def delete_device(device_id: uuid.UUID, session: sessionDep):
+async def delete_device(device_id: uuid.UUID, session: sessionDep, current_user: CurrentUser):
     """
-        Delete User
+        Delete Device
     """
     logger.info(f"Device deletion requested with device id: {device_id}")
 
@@ -151,6 +150,7 @@ async def delete_device(device_id: uuid.UUID, session: sessionDep):
 
 
 #==========================================
+#TODO: Add device auth here
 @router.get("/{device_id}/trigger", response_model=dict)
 async def trigger_device(
     device_id: uuid.UUID, 
