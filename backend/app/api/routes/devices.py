@@ -150,7 +150,7 @@ async def delete_device(device_id: uuid.UUID, session: sessionDep, current_user:
 
 
 #==========================================
-#TODO: Add device auth here
+#TODO: Add device auth
 @router.get("/{device_id}/trigger", response_model=dict)
 async def trigger_device(
     device_id: uuid.UUID, 

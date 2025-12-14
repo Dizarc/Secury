@@ -1,6 +1,6 @@
 #TODO: Change all status codes to constants
 
-def test_get_access_token_invalid(client, user):
+def test_get_access_token_valid(client, user):
     login_data = {
         "username": user["email"],
         "password": user["password"],

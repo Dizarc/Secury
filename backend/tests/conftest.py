@@ -95,3 +95,35 @@ def client_fixture(session: Session):
         yield c
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(name="auth_headers", scope="function")
+def auth_header_fixture(client, user):
+    """
+        Login to the user created in session_fixture
+        retrieve the JWT token
+        Return auth header
+    """
+    login_data = {
+        "username": user["email"],
+        "password": user["password"],
+    }
+
+    response = client.post("/api/login/access-token", data=login_data)
+
+    assert response.status_code == 200
+
+    token = response.json()["access_token"]
+
+    return  {"Authorization": f"Bearer {token}"}
+
+
+
+@pytest.fixture(name="auth_client", scope="function")
+def auth_client_fixture(client, auth_headers):
+    """
+        Return a client that has JWT token already in headers
+    """
+    client.headers.update(auth_headers)
+
+    return client
