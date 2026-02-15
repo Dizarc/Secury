@@ -1,9 +1,8 @@
 """
 Test multiple components working together
 """
+from fastapi import status
 from backend.app.models import EventType, DeviceStatus
-
-#TODO: Change all status codes to constants
 
 
 def test_trigger_creates_event(auth_client, uuids):
@@ -12,7 +11,7 @@ def test_trigger_creates_event(auth_client, uuids):
     initial_count = len(events_before)
 
     response = auth_client.get(f"/api/devices/{uuids["window"]}/trigger?new_status=open")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
     events_after = auth_client.get("/api/events?limit=100").json()
     new_count = len(events_after)
@@ -35,7 +34,7 @@ def test_trigger_updates_device_state(auth_client, uuids):
         new_status = DeviceStatus.CLOSED.value
 
     response = auth_client.get(f"/api/devices/{uuids["window"]}/trigger?new_status={new_status}")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
     device_after = auth_client.get(f"/api/devices/{uuids["window"]}").json()
     assert device_after["status"] == new_status
@@ -45,7 +44,7 @@ def test_trigger_updates_device_state(auth_client, uuids):
 def test_low_battery_creates_two_events(auth_client, uuids):
 
     response = auth_client.get(f"/api/devices/{uuids["window"]}/trigger?new_status=open&battery=6")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
     events = auth_client.get("/api/events?limit=10").json()
 
@@ -59,7 +58,7 @@ def test_multiple_device_triggers(auth_client, uuids):
     for name, device_id in list(uuids.items())[:3]:
         print(device_id)
         response = auth_client.get(f"/api/devices/{device_id}/trigger?new_status=open")
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
 
@@ -92,7 +91,7 @@ def test_battery_update_persists(auth_client, uuids):
 
     for battery in battery_levels:
         response = auth_client.get(f"/api/devices/{uuids["window"]}/trigger?new_status=open&battery={battery}")
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
 
         device = auth_client.get(f"/api/devices/{uuids["window"]}").json()
         assert device["battery"] == battery
@@ -110,10 +109,10 @@ def test_websocket_receives_device_updates(auth_client):
 def test_api_error_handling(auth_client, uuids):
 
     invalid_requests = [
-        (f"api/devices/{uuids["invalid"]}", 404),
-        (f"api/devices/{uuids["invalid"]}/trigger?new_status=open", 404),
-        (f"api/devices/{uuids["window"]}/trigger?new_status=invalid", 404),
-        (f"api/devices/{uuids["window"]}/trigger?new_status=open&battery=150", 400),
+        (f"api/devices/{uuids["invalid"]}", status.HTTP_404_NOT_FOUND),
+        (f"api/devices/{uuids["invalid"]}/trigger?new_status=open", status.HTTP_404_NOT_FOUND),
+        (f"api/devices/{uuids["window"]}/trigger?new_status=invalid", status.HTTP_404_NOT_FOUND),
+        (f"api/devices/{uuids["window"]}/trigger?new_status=open&battery=150", status.HTTP_400_BAD_REQUEST),
     ]
 
     for endpoint, expected_status in invalid_requests:
@@ -124,7 +123,7 @@ def test_api_error_handling(auth_client, uuids):
 def test_battery_zero_valid_percentage(auth_client, uuids):
 
     response = auth_client.get(f"/api/devices/{uuids["window"]}/trigger?new_status=open&battery=0")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     
     device = auth_client.get(f"/api/devices/{uuids["window"]}").json()
     assert device["battery"] == 0
@@ -132,7 +131,7 @@ def test_battery_zero_valid_percentage(auth_client, uuids):
 def test_battery_hundred_valid_percentage(auth_client, uuids):
 
     response = auth_client.get(f"/api/devices/{uuids["window"]}/trigger?new_status=open&battery=100")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     
     device = auth_client.get(f"/api/devices/{uuids["window"]}").json()
     assert device["battery"] == 100
@@ -153,7 +152,7 @@ def test_full_device_lifecycle(auth_client, uuids):
     new_battery = 80
 
     trigger_response = auth_client.get(f"/api/devices/{uuids["window"]}/trigger?new_status={new_status}&battery={new_battery}")
-    assert trigger_response.status_code == 200
+    assert trigger_response.status_code == status.HTTP_200_OK
     trigger_data = trigger_response.json()
 
     assert trigger_data["success"] is True

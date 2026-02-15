@@ -1,4 +1,5 @@
-#TODO: Change all status codes to constants
+from fastapi import status
+
 
 def test_get_access_token_valid(client, user):
     login_data = {
@@ -8,7 +9,7 @@ def test_get_access_token_valid(client, user):
 
     response = client.post("/api/login/access-token", data=login_data)
     
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
     data = response.json()
 
@@ -24,4 +25,4 @@ def test_get_access_token_invalid(client, user):
 
     response = client.post("/api/login/access-token", data=login_data)
     
-    assert response.status_code == 401
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED

@@ -1,8 +1,9 @@
-#TODO: Change all status codes to constants
+from fastapi import status
+
 
 def test_get_events_default(auth_client):
     response = auth_client.get("/api/events")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
     data = response.json()
 
@@ -13,7 +14,7 @@ def test_get_events_default(auth_client):
 
 def test_get_events_limit(auth_client):
     response = auth_client.get("/api/events?limit=5")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
     data = response.json()
 
