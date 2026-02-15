@@ -6,7 +6,9 @@ from backend.app.models import DevicePublic, EventPublic
 from backend.app.core.database import engine
 from backend.app.core.config import logger
 
+
 websocket_router = APIRouter(prefix="/ws", tags=["websocket"])
+
 
 class ConnectionManager:
     def __init__(self):
@@ -31,8 +33,11 @@ class ConnectionManager:
                 logger.error(f"Error sending message: {e}")
                 self.disconnect(connection)
 
+
 manager = ConnectionManager()
 
+
+# TODO: Implement security for websocket
 @websocket_router.websocket("")
 async def websocket_endpoint(websocket: WebSocket):
     """

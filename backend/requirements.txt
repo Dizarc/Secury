@@ -6,5 +6,8 @@ typing
 pydantic_settings
 sqlmodel
 email-validator
+python-multipart
+pyjwt
+pwdlib[argon2]
 
 pytest

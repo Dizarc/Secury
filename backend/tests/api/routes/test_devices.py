@@ -1,8 +1,12 @@
-from backend.app.models import DeviceStatus, EventType
+from datetime import datetime
+from fastapi import status
 
-def test_get_all_devices(client):
-    response = client.get("/api/devices")
-    assert response.status_code == 200
+from backend.app.models import DeviceStatus, EventType, DeviceCreate, DeviceUpdate
+
+
+def test_get_all_devices(auth_client):
+    response = auth_client.get("/api/devices")
+    assert response.status_code == status.HTTP_200_OK
 
     data = response.json()
     assert isinstance(data, list)
@@ -17,9 +21,28 @@ def test_get_all_devices(client):
         assert "battery" in device
 
 
-def test_get_device_valid(client, uuids):
-    response = client.get(f"/api/devices/{uuids["window"]}")
-    assert response.status_code == 200
+def test_create_device(auth_client):
+    new_device = DeviceCreate(name="Test Create", type="test", location="Test Room")
+
+    response = auth_client.post("/api/devices", json=new_device.model_dump(mode="json"))
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert data["name"] == new_device.name
+    assert data["type"] == new_device.type
+    assert data["location"] == new_device.location
+    assert data["status"] == DeviceStatus.CLOSED
+
+    devices = auth_client.get("/api/devices").json()
+
+    ids = [d["id"] for d in devices]
+    assert data["id"] in ids
+
+
+def test_get_device_valid(auth_client, uuids):
+    response = auth_client.get(f"/api/devices/{uuids["window"]}")
+    assert response.status_code == status.HTTP_200_OK
 
     data = response.json()
 
@@ -33,17 +56,64 @@ def test_get_device_valid(client, uuids):
     assert "last_seen" in data
 
 
-def test_get_device_invalid(client, uuids):
-    response = client.get(f"/api/devices/{uuids["invalid"]}")
-    assert response.status_code == 404
+def test_get_device_invalid(auth_client, uuids):
+    response = auth_client.get(f"/api/devices/{uuids["invalid"]}")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
     
     data = response.json()
     assert data["detail"] == "Device not found"
 
 
+def test_update_device_valid(auth_client, uuids):
+
+    update_data = DeviceUpdate(status=DeviceStatus.OFFLINE.value, last_updated=datetime.now())
+
+    response = auth_client.patch(f"/api/devices/{uuids["window"]}", json=update_data.model_dump(exclude_unset=True, mode="json"))
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.json()
+
+    assert data["status"] == DeviceStatus.OFFLINE
+    assert data["id"] == str(uuids["window"])
+
+    new_response = auth_client.get(f"/api/devices/{uuids["window"]}").json()
+    assert new_response["status"] == DeviceStatus.OFFLINE
+
+
+def test_update_device_invalid(auth_client, uuids):
+    update_data = DeviceUpdate(status=DeviceStatus.OFFLINE.value, last_updated=datetime.now())
+
+    response = auth_client.patch(f"/api/devices/{uuids["invalid"]}", json=update_data.model_dump(exclude_unset=True, mode="json"))
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    data = response.json()
+    assert data["detail"] == "Device not found"
+
+
+def test_delete_device_valid(auth_client, uuids):
+    response = auth_client.delete(f"/api/devices/{uuids["window"]}")
+
+    assert response.status_code == status.HTTP_200_OK
+    
+    data = response.json()
+    assert data == "Deleted device successfully"
+
+    new_response = auth_client.get(f"/api/devices/{uuids["window"]}")
+    assert new_response.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_delete_device_invalid(auth_client, uuids):
+    response = auth_client.delete(f"/api/devices/{uuids["invalid"]}")
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    
+    data = response.json()
+
+    assert data["detail"] == "Error deleting device"
+
+
 def test_trigger_valid_device(client, uuids):
     response = client.get(f"/api/devices/{uuids["window"]}/trigger?new_status=open")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
     data = response.json()
 
@@ -60,7 +130,7 @@ def test_trigger_valid_device(client, uuids):
 
 def  test_trigger_invalid_device(client, uuids):
     response = client.get(f"/api/devices/{uuids["invalid"]}/trigger?new_status=open")
-    assert response.status_code == 404
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
     data = response.json()
     

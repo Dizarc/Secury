@@ -1,14 +1,14 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, status
 
 from backend.app import crud
-from backend.app.api.deps import sessionDep
+from backend.app.api.deps import sessionDep, CurrentUser
 from backend.app.models import EventPublic
 from backend.app.core.config import logger
 
 router = APIRouter(prefix="/events", tags=["events"])
 
 @router.get("", response_model=list[EventPublic])
-async def get_events(session: sessionDep, limit: int = 10):
+async def get_events(session: sessionDep, current_user: CurrentUser, limit: int = 10):
     """
         Get recent events
     """
@@ -23,4 +23,4 @@ async def get_events(session: sessionDep, limit: int = 10):
     
     except Exception:
         logger.exception("Error retrieving events")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
