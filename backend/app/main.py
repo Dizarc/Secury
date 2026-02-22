@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from sqlmodel import Session, select
 
@@ -144,6 +145,14 @@ app = FastAPI(
     lifespan=lifespan,
     title="IoT Security Monitor API",
     description="Real-time home security monitoring system"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/")
