@@ -90,3 +90,56 @@ export interface LoginResponse {
 export interface TokenPayload {
   sub: string | null;
 }
+
+// WebSocket message types
+export interface WSMessageInitialState {
+  type: "initial_state";
+  devices: Device[];
+  events: Event[];
+  timestamp: string;
+}
+
+export interface WSMessageDeviceUpdate {
+  type: "device_update";
+  device: Device;
+  event: Event;
+  timestamp: string;
+}
+
+export interface WSMessageDeviceAdded {
+  type: "device_added";
+  device: Device;
+  timestamp: string;
+}
+
+export interface WSMessageDeviceUpdated {
+  type: "device_updated";
+  device: Device;
+  timestamp: string;
+}
+
+export interface WSMessageDeviceDeleted {
+  type: "device_deleted";
+  device_id: string;
+  timestamp: string;
+}
+
+export interface WSMessageDeviceOffline {
+  type: "device_offline";
+  device: Device;
+  event: Event;
+  timestamp: string;
+}
+
+export type WebSocketMessage =
+  | WSMessageInitialState
+  | WSMessageDeviceUpdate
+  | WSMessageDeviceAdded
+  | WSMessageDeviceUpdated
+  | WSMessageDeviceDeleted
+  | WSMessageDeviceOffline;
+
+// API Error response
+export interface APIError {
+  detail: string;
+}
